@@ -21,8 +21,9 @@ $script:SeverityNames = @{ 3 = 'Serious'; 2 = 'Medium'; 1 = 'Minor' }
 
 function Get-CrashReport {
     # Reads the logs and explains everything: what both the window and the console show
-    param([int]$Days)
-    $crashes = @(Get-CrashEvents -Since (Get-Date).Date.AddDays(-$Days))
+    param([int]$Days, [scriptblock]$OnStep = {})
+    $crashes = @(Get-CrashEvents -Since (Get-Date).Date.AddDays(-$Days) -OnStep $OnStep)
+    & $OnStep 'Explaining'
     $groups  = @(Group-Crashes $crashes)
     foreach ($group in $groups) { $group.Explanation = Get-Explanation $group }
     [pscustomobject]@{

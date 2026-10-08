@@ -85,11 +85,16 @@ function Get-PathField {
     if ($path -like '*\*') { $path } else { '' }
 }
 
+# What Get-CrashEvents reads, in order; the window shows these while reading
+$script:CrashSources = 'Blue screens', 'Unexpected shutdowns', 'Graphics driver resets', 'Hardware errors', 'Program crashes', 'Program freezes'
+
 function Get-CrashEvents {
-    param([datetime]$Since)
+    # -OnStep is called with the name of each source before it is read (progress in the window)
+    param([datetime]$Since, [scriptblock]$OnStep = {})
     $crashes = New-Object System.Collections.Generic.List[object]
 
     # Blue screens: logged after the restart, with the bug check code and parameters
+    & $OnStep $script:CrashSources[0]
     $blueScreens = @(Read-EventLog @{ LogName = 'System'; ProviderName = 'Microsoft-Windows-WER-SystemErrorReporting'; Id = 1001; StartTime = $Since })
     foreach ($record in $blueScreens) {
         $fields = Get-EventFields $record
@@ -98,6 +103,7 @@ function Get-CrashEvents {
     }
 
     # Kernel-Power 41: Windows started again without having shut down properly
+    & $OnStep $script:CrashSources[1]
     foreach ($record in @(Read-EventLog @{ LogName = 'System'; ProviderName = 'Microsoft-Windows-Kernel-Power'; Id = 41; StartTime = $Since })) {
         $fields = Get-EventFields $record
         $bugCheck = Get-Field $fields 'BugcheckCode', '0'
@@ -117,12 +123,14 @@ function Get-CrashEvents {
     }
 
     # Graphics driver stopped responding and was restarted (screen goes black for a moment)
+    & $OnStep $script:CrashSources[2]
     foreach ($record in @(Read-EventLog @{ LogName = 'System'; ProviderName = 'Display'; Id = 4101; StartTime = $Since })) {
         $fields = Get-EventFields $record
         $crashes.Add((New-Crash -Kind GpuReset -Time $record.TimeCreated -Module (Get-Field $fields '0') -Code '4101'))
     }
 
     # Errors the hardware itself reported (CPU, RAM, PCIe)
+    & $OnStep $script:CrashSources[3]
     foreach ($record in @(Read-EventLog @{ LogName = 'System'; ProviderName = 'Microsoft-Windows-WHEA-Logger'; Level = 1, 2, 3; StartTime = $Since })) {
         $fields = Get-EventFields $record
         $crashes.Add((New-Crash -Kind Hardware -Time $record.TimeCreated -Code "$($record.Id)" `
@@ -130,6 +138,7 @@ function Get-CrashEvents {
     }
 
     # Program crashes
+    & $OnStep $script:CrashSources[4]
     foreach ($record in @(Read-EventLog @{ LogName = 'Application'; ProviderName = 'Application Error'; Id = 1000; StartTime = $Since })) {
         $fields = Get-EventFields $record
         $module = Get-Field $fields 'ModuleName', '3'
@@ -143,6 +152,7 @@ function Get-CrashEvents {
     }
 
     # Program freezes ("not responding", then closed)
+    & $OnStep $script:CrashSources[5]
     foreach ($record in @(Read-EventLog @{ LogName = 'Application'; ProviderName = 'Application Hang'; Id = 1002; StartTime = $Since })) {
         $fields = Get-EventFields $record
         $appPath = Get-PathField $fields 'ExeFileName', '5'

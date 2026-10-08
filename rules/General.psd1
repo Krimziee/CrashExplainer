@@ -5,9 +5,9 @@
     PowerLoss = @{
         Title    = 'The PC turned off without shutting down properly'
         Category = 'Power'
-        Explain  = 'Windows did not get to shut down and saved no crash report. That points at power or hardware rather than software: the power supply, a loose cable, overheating, or a very unstable overclock. A power cut or pulling the plug looks the same.'
+        Explain  = 'Windows did not get to shut down and saved no crash report. That usually points at power or hardware rather than software: the power supply, a loose cable, overheating, or a very unstable overclock. A power cut, pulling the plug or pressing the reset button looks the same.'
         Fixes    = @(
-            'If there was a power cut, or you switched off at the wall, you can ignore this one.'
+            'If there was a power cut, or you switched off at the wall or pressed reset, you can ignore this one.'
             'Check CPU and GPU temperatures while gaming (for example with HWiNFO), and clean out dust.'
             'Turn off all overclocks and undervolts: XMP/EXPO, PBO, Curve Optimizer, Intel XTU - or load the BIOS defaults - and see if the crashes stop.'
             'Check the power cables to the motherboard and graphics card. If the PC turns off during heavy games, the power supply may be too weak or failing.'
@@ -58,7 +58,7 @@
                       'version.dll', 'winmm.dll', 'winhttp.dll', 'xinput1_3.dll', 'xinput1_4.dll', 'dsound.dll')
         Component = 'a mod or ReShade (a replacement for a Windows file)'
         Category  = 'Mod'
-        Explain   = 'The file that crashed has a Windows name but was not loaded from the Windows folder. That means a mod, ReShade, a mod loader or a "fix" pack put its own copy next to the game.'
+        Explain   = 'The file that crashed has a Windows name but was not loaded from the Windows folder. That usually means a mod, ReShade, a mod loader or a "fix" pack put its own copy next to the game.'
         Fixes     = @(
             'Remove or update the mod, ReShade or loader that put this file in the game folder, then test again.'
             'Remove mods, then add them back one at a time to find the one causing it.'
@@ -67,7 +67,7 @@
     AddOnInWindowsProgram = @{
         Component = 'add-on from another program'
         Category  = 'AddOn'
-        Explain   = 'A Windows program crashed inside a file that does not belong to Windows. Other programs add their own files to Explorer and other Windows programs (right-click menus, cloud sync icons, overlays), and one of them caused this. The folder below shows which program it came from.'
+        Explain   = 'A Windows program crashed inside a file that does not belong to Windows. Other programs add their own files to Explorer and other Windows programs (right-click menus, cloud sync icons, overlays), and one of them most likely caused this. The folder below shows which program it came from.'
         Fixes     = @(
             'Update the program this file belongs to (see the folder above), or uninstall it if you do not use it.'
             'For Explorer crashes, ShellExView (NirSoft) can turn off add-ons one at a time to find the bad one.'
@@ -88,7 +88,7 @@
         )
     }
     UnknownBlueScreen = @{
-        Explain = 'This blue screen code is not in Crash Explainer''s list yet. Blue screens are almost always caused by a driver, unstable hardware settings, or failing hardware.'
+        Explain = 'This blue screen code is not in Crash Explainer''s list yet. Blue screens are usually caused by a driver, unstable hardware settings, or failing hardware.'
         Fixes   = @(
             'Update your chipset, network and graphics drivers from the manufacturers'' websites.'
             'Turn off all overclocks and undervolts: XMP/EXPO, PBO, Curve Optimizer, Intel XTU - or load the BIOS defaults - and see if the crashes stop.'
@@ -105,7 +105,7 @@
             Explain  = 'The hardware reported an error it could not correct, which crashed the PC. Usually instability from overclocking, undervolting, heat or an outdated BIOS.'
             Fixes    = @(
                 'Turn off all overclocks and undervolts: XMP/EXPO, PBO, Curve Optimizer, Intel XTU - or load the BIOS defaults - and see if the crashes stop.'
-                'Update your BIOS. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
+                'Update your BIOS, following your motherboard maker''s instructions exactly. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
                 'Check CPU and GPU temperatures while gaming (for example with HWiNFO), and clean out dust.'
             )
         }
@@ -115,7 +115,7 @@
             Explain  = 'The CPU reported an error it could not correct, which crashed the PC. Usually instability from overclocking, undervolting, heat or an outdated BIOS.'
             Fixes    = @(
                 'Turn off all overclocks and undervolts: XMP/EXPO, PBO, Curve Optimizer, Intel XTU - or load the BIOS defaults - and see if the crashes stop.'
-                'Update your BIOS. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
+                'Update your BIOS, following your motherboard maker''s instructions exactly. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
                 'Check CPU and GPU temperatures while gaming (for example with HWiNFO), and clean out dust.'
             )
         }
@@ -125,7 +125,7 @@
             Explain  = 'The CPU reported a small error that it corrected. A few are harmless, but many of them mean the CPU or RAM is close to unstable - often from an overclock, undervolt or Curve Optimizer setting.'
             Fixes    = @(
                 'Turn off all overclocks and undervolts: XMP/EXPO, PBO, Curve Optimizer, Intel XTU - or load the BIOS defaults - and see if the crashes stop.'
-                'Update your BIOS. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
+                'Update your BIOS, following your motherboard maker''s instructions exactly. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
             )
         }
         '17' = @{
@@ -133,8 +133,8 @@
             Category = 'HardwareMinor'
             Explain  = 'A device in a PCIe slot (graphics card, NVMe SSD, Wi-Fi card) had a communication error that was corrected. Usually harmless, but it can come with stutters or crashes.'
             Fixes    = @(
-                'Reseat the device so it sits firmly in its slot.'
-                'Update your BIOS and chipset drivers.'
+                'With the PC off and unplugged, take the device out and push it firmly back into its slot.'
+                'Update your chipset drivers, and your BIOS (following your motherboard maker''s instructions exactly).'
                 'If you use a PCIe riser cable, set the slot to Gen 3 or Gen 4 in the BIOS instead of Auto.'
             )
         }
@@ -152,7 +152,7 @@
             Category = 'HardwareMinor'
             Explain  = 'The hardware reported a problem. On its own this may be harmless; it matters if it happens often or near crashes.'
             Fixes    = @(
-                'Update your BIOS and chipset drivers.'
+                'Update your chipset drivers, and your BIOS (following your motherboard maker''s instructions exactly).'
                 'Turn off all overclocks and undervolts: XMP/EXPO, PBO, Curve Optimizer, Intel XTU - or load the BIOS defaults - and see if the crashes stop.'
             )
         }
@@ -160,7 +160,7 @@
 
     # {0}, {1} are filled in by Get-BigPicture in Explain.ps1
     BigPicture = @{
-        Hardware          = 'Your hardware reported serious errors. Before anything else, turn off overclocks and undervolts (XMP/EXPO, PBO, Curve Optimizer) and update your BIOS - that fixes most of these cases.'
+        Hardware          = 'Your hardware reported serious errors. Before anything else, turn off overclocks and undervolts (XMP/EXPO, PBO, Curve Optimizer) and update your BIOS - that solves many of these cases.'
         ManyBlueScreens   = 'You had {0} different kinds of blue screen. Different blue screens often share one cause - unstable RAM, an overclock or one bad driver - so test your RAM and settings first.'
         Gpu               = 'The graphics driver or graphics card is involved in {0} of these events. A clean driver install (DDU) and removing GPU overclocks is the best place to start.'
         Overlay           = 'Overlays ({0}) show up in crashes of several programs. Turn them off and see if the crashes stop.'

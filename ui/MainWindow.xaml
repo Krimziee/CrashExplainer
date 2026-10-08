@@ -90,6 +90,9 @@
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
                                 <Setter Property="Foreground" Value="#F3F3F3"/>
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -118,6 +121,21 @@
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Thin progress bar (same as Windows Setup) -->
+        <Style TargetType="ProgressBar">
+            <Setter Property="Height" Value="6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid>
+                            <Border x:Name="PART_Track" CornerRadius="3" Background="#333333"/>
+                            <Border x:Name="PART_Indicator" CornerRadius="3" Background="{StaticResource Accent}" HorizontalAlignment="Left"/>
+                        </Grid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -235,6 +253,7 @@
             <TextBlock x:Name="StatusTitle" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
             <TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" Margin="0,6,0,0" MaxWidth="520"
                        TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+            <ProgressBar x:Name="ReadProgress" Width="320" Margin="0,16,0,0" Maximum="100" Visibility="Collapsed"/>
         </StackPanel>
     </Grid>
 </Window>

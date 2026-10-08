@@ -135,7 +135,7 @@
             Match     = @('Nahimic*', 'NahimicOSD*', 'A-Volute*', 'AudioDevProps*')
             Component = 'Nahimic / Sonic Studio audio software'
             Category  = 'Overlay'
-            Explain   = 'Nahimic audio software (preinstalled on many MSI, Dell, Alienware and ASUS PCs) loads itself into every game and is a well-known cause of game crashes.'
+            Explain   = 'Nahimic audio software (preinstalled on many MSI, Dell, Alienware and ASUS PCs) loads itself into every game and is a common cause of game crashes.'
             Fixes     = @('Uninstall the Nahimic app and disable the "Nahimic service" in Services. MSI and other makers may reinstall it with driver updates, so check again later.')
         }
         @{

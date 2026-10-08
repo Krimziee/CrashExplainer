@@ -14,11 +14,11 @@
     }
     'C0000409' = @{
         Name    = 'stack buffer overrun'
-        Explain = 'The program noticed that its own memory was damaged and shut itself down on purpose. Usually a bug in the program, but if several different games crash this way, an unstable CPU or RAM is likely.'
+        Explain = 'The program detected a serious problem - often damaged memory - and shut itself down on purpose. Usually a bug in the program, but if several different games crash this way, an unstable CPU or RAM is likely.'
         Fixes   = @(
             'Update the game or app to its latest version.'
             'Verify or repair the game files (Steam: right-click the game > Properties > Installed Files > Verify integrity of game files).'
-            'Update your BIOS. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
+            'Update your BIOS, following your motherboard maker''s instructions exactly. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
             'Turn off all overclocks and undervolts: XMP/EXPO, PBO, Curve Optimizer, Intel XTU - or load the BIOS defaults - and see if the crashes stop.'
         )
     }
@@ -43,11 +43,11 @@
     'C000001D' = @{
         Name     = 'illegal instruction'
         Category = 'Stability'
-        Explain  = 'The CPU was given an instruction it could not run. Either your CPU is too old for this program (for example, it has no AVX support), or the CPU is unstable.'
+        Explain  = 'The CPU was given an instruction it could not run. Usually either your CPU is too old for this program (for example, it has no AVX support), or the CPU is unstable.'
         Fixes    = @(
             'Check that your CPU meets the game''s minimum requirements.'
             'Turn off all overclocks and undervolts: XMP/EXPO, PBO, Curve Optimizer, Intel XTU - or load the BIOS defaults - and see if the crashes stop.'
-            'Update your BIOS. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
+            'Update your BIOS, following your motherboard maker''s instructions exactly. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
         )
     }
     'C0000096' = @{
@@ -98,7 +98,7 @@
     }
     '80000003' = @{
         Name    = 'breakpoint'
-        Explain = 'The program stopped itself on purpose because something unexpected happened. Anti-cheat software often does this.'
+        Explain = 'The program stopped itself on purpose because something unexpected happened. Some anti-cheat software and game engines do this.'
         Fixes   = @(
             'Update the game or app to its latest version.'
             'Verify or repair the game files (Steam: right-click the game > Properties > Installed Files > Verify integrity of game files).'

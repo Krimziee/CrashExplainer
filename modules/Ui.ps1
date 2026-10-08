@@ -1,14 +1,16 @@
 <#
     The Crash Explainer window (WPF, built into Windows).
     The logs are read when the window opens, and again when the period
-    changes or Refresh is clicked. Changing the sort order only reorders
-    what was already read.
+    changes or Refresh is clicked. Reading runs in the background
+    (Read-Report.ps1) and reports progress through a queue that a timer
+    reads, so the window never freezes. Changing the sort order only
+    reorders what was already read.
 #>
 
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
 $script:Ui      = @{}   # named controls from MainWindow.xaml
-$script:UiState = @{ Report = $null; Days = 14; SortBy = 'Severity'; Ready = $false }
+$script:UiState = @{ Report = $null; Days = 14; SortBy = 'Severity'; Started = $false; Reading = $false }
 
 $script:Colors = @{ Text = '#F3F3F3'; Muted = '#A6A6A6'; Accent = '#4CA6FF' }
 # Severity 3 = Serious, 2 = Medium, 1 = Minor
@@ -120,9 +122,10 @@ function Add-Section {
 
 function Show-Status {
     # Replaces the list and details with a message (reading, nothing found)
-    param([string]$Title, [string]$Text = '')
+    param([string]$Title, [string]$Text = '', [switch]$Progress)
     $script:Ui.StatusTitle.Text = $Title
     $script:Ui.StatusText.Text  = $Text
+    $script:Ui.ReadProgress.Visibility = if ($Progress) { 'Visible' } else { 'Collapsed' }
     $script:Ui.StatusPanel.Visibility = 'Visible'
     $script:Ui.MainArea.Visibility    = 'Collapsed'
 }
@@ -248,17 +251,85 @@ function Show-Detail {
 #  Reading the logs
 # ------------------------------------------------------------------
 
-function Update-Report {
+function Set-ChoicesEnabled {
+    # Period, sort and Refresh are off while reading
+    param([bool]$Enabled)
+    foreach ($name in 'Days7', 'Days14', 'Days30', 'Days90', 'SortSeverity', 'SortRecent', 'RefreshButton') {
+        $script:Ui[$name].IsEnabled = $Enabled
+    }
+}
+
+function Start-Reading {
+    # Reads the logs in a background runspace (Read-Report.ps1), so the window never freezes
     $s = $script:UiState
-    Show-Status 'Reading Windows crash logs...' 'This takes a few seconds.'
+    if ($s.Reading) { return }
+    $s.Reading = $true
+    Set-ChoicesEnabled $false
     $script:Ui.SummaryText.Text = ''
     $script:Ui.BigPictureCard.Visibility = 'Collapsed'
-    $script:Ui.Window.Cursor = 'Wait'
-    # Let the window draw the message before reading, which blocks the window
-    $script:Ui.Window.Dispatcher.Invoke([Action] {}, [System.Windows.Threading.DispatcherPriority]::Background)
-    try { $s.Report = Get-CrashReport -Days $s.Days }
-    finally { $script:Ui.Window.Cursor = $null }
+    $script:Ui.ReadProgress.Value = 0
+    Show-Status 'Reading Windows crash logs...' ' ' -Progress
 
+    $s.Queue = New-Object 'System.Collections.Concurrent.ConcurrentQueue[object]'
+    $iss = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+    $iss.ExecutionPolicy = 'Bypass'   # for this runspace only; nothing is changed on the PC
+    $s.Runspace = [runspacefactory]::CreateRunspace($iss)
+    $s.Runspace.Open()
+    $s.PowerShell = [powershell]::Create()
+    $s.PowerShell.Runspace = $s.Runspace
+    [void]$s.PowerShell.AddCommand((Join-Path $s.Root 'modules\Read-Report.ps1')).
+        AddParameter('Root', $s.Root).AddParameter('Days', $s.Days).AddParameter('Queue', $s.Queue)
+    $s.Handle = $s.PowerShell.BeginInvoke()
+
+    if (-not $s.Timer) {
+        $s.Timer = New-Object System.Windows.Threading.DispatcherTimer
+        $s.Timer.Interval = [TimeSpan]::FromMilliseconds(100)
+        $s.Timer.Add_Tick({ Invoke-UiSafely { Receive-Reading } })
+    }
+    $s.Timer.Start()
+}
+
+function Receive-Reading {
+    # Called by the timer: shows progress, and the result once reading is done
+    $s = $script:UiState
+    $message = $null
+    while ($s.Reading -and $s.Queue.TryDequeue([ref]$message)) {
+        switch ($message.Type) {
+            'Progress' {
+                $script:Ui.StatusText.Text = "$($message.Label)..."
+                $script:Ui.ReadProgress.Value = $message.Percent
+            }
+            'Done'  { Stop-Reading; Show-ReportResult $message.Report }
+            'Error' { Stop-Reading; Show-Status 'Could not read the crash logs' $message.Message }
+        }
+    }
+    # Reading stopped without saying why (should not happen, but never hang)
+    if ($s.Reading -and $s.Handle.IsCompleted -and $s.Queue.IsEmpty) {
+        $errors = @($s.PowerShell.Streams.Error | ForEach-Object { $_.ToString() }) -join ' '
+        Stop-Reading
+        Show-Status 'Could not read the crash logs' $(if ($errors) { $errors } else { 'Reading stopped unexpectedly.' })
+    }
+}
+
+function Stop-Reading {
+    # Also used when the window is closed while reading
+    $s = $script:UiState
+    if ($s.Timer) { $s.Timer.Stop() }
+    if ($s.PowerShell) {
+        try { if (-not $s.Handle.IsCompleted) { $s.PowerShell.Stop() } } catch { }
+        $s.PowerShell.Dispose()
+        $s.Runspace.Dispose()
+        $s.PowerShell = $null
+        $s.Runspace   = $null
+    }
+    $s.Reading = $false
+    Set-ChoicesEnabled $true
+}
+
+function Show-ReportResult {
+    param($Report)
+    $s = $script:UiState
+    $s.Report = $Report
     $script:Ui.CrashList.Items.Clear()
     if (-not $s.Report.Groups) {
         Show-Status 'No crashes found' ("Windows recorded no crashes, blue screens, freezes or sudden shutdowns in the last $($s.Days) days." +
@@ -298,6 +369,7 @@ function Show-CrashWindow {
     }
 
     $s = $script:UiState
+    $s.Root   = $Root
     $s.Days   = $Days
     $s.SortBy = $SortBy
     $script:Ui.VersionText.Text = "v$Version"
@@ -319,24 +391,25 @@ function Show-CrashWindow {
 
     foreach ($days in 7, 14, 30, 90) {
         $script:Ui["Days$days"].Add_Checked({
-            Invoke-UiSafely { $script:UiState.Days = [int]$this.Tag; if ($script:UiState.Ready) { Update-Report } }
+            Invoke-UiSafely { $script:UiState.Days = [int]$this.Tag; Start-Reading }
         })
     }
     $script:Ui.SortSeverity.Add_Checked({ Invoke-UiSafely { $script:UiState.SortBy = 'Severity'; if ($script:UiState.Report) { Update-List } } })
     $script:Ui.SortRecent.Add_Checked({   Invoke-UiSafely { $script:UiState.SortBy = 'Recent';   if ($script:UiState.Report) { Update-List } } })
-    $script:Ui.RefreshButton.Add_Click({ Invoke-UiSafely { Update-Report } })
+    $script:Ui.RefreshButton.Add_Click({ Invoke-UiSafely { Start-Reading } })
     $script:Ui.CrashList.Add_SelectionChanged({
         Invoke-UiSafely { Show-Detail $(if ($script:Ui.CrashList.SelectedItem) { $script:Ui.CrashList.SelectedItem.Tag }) }
     })
 
-    # Read the logs once the window is on screen, so it doesn't look stuck while starting
+    # Start reading once the window is on screen
     $window.Add_ContentRendered({
         Invoke-UiSafely {
-            if ($script:UiState.Ready) { return }
-            Update-Report
-            $script:UiState.Ready = $true
+            if ($script:UiState.Started) { return }
+            $script:UiState.Started = $true
+            Start-Reading
         }
     })
+    $window.Add_Closed({ Stop-Reading })
 
     if ($NoShow) { return $window }
     [void]$window.ShowDialog()

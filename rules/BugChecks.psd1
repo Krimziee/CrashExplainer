@@ -27,18 +27,18 @@
     '0x1A' = @{
         Name     = 'MEMORY_MANAGEMENT'
         Category = 'Memory'
-        Explain  = 'Windows found that its memory bookkeeping was damaged. This is very often faulty or unstable RAM.'
+        Explain  = 'Windows found that its memory bookkeeping was damaged. This is often faulty or unstable RAM.'
         Fixes    = @(
             'Turn off XMP/EXPO (the RAM overclock) in the BIOS for a few days and see if the crashes stop.'
             'Test your RAM: run "Windows Memory Diagnostic" from the Start menu, or MemTest86 for a deeper test.'
-            'Reseat the RAM sticks, or test with one stick at a time to find a bad one.'
-            'Update your BIOS. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
+            'With the PC off and unplugged, take the RAM sticks out and push them firmly back in, or test with one stick at a time to find a bad one.'
+            'Update your BIOS, following your motherboard maker''s instructions exactly. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
         )
     }
     '0x50' = @{
         Name     = 'PAGE_FAULT_IN_NONPAGED_AREA'
         Category = 'Memory'
-        Explain  = 'Windows tried to read memory that should always be there, and it was not. Caused by faulty RAM, a bad driver, or sometimes antivirus software.'
+        Explain  = 'Windows tried to read memory that should always be there, and it was not. Usually faulty RAM or a bad driver, sometimes antivirus software.'
         Fixes    = @(
             'Turn off XMP/EXPO (the RAM overclock) in the BIOS for a few days and see if the crashes stop.'
             'Test your RAM: run "Windows Memory Diagnostic" from the Start menu, or MemTest86 for a deeper test.'
@@ -130,7 +130,7 @@
     '0xEA' = @{
         Name     = 'THREAD_STUCK_IN_DEVICE_DRIVER'
         Category = 'Gpu'
-        Explain  = 'A driver - almost always the graphics driver - got stuck waiting for the graphics card.'
+        Explain  = 'A driver - usually the graphics driver - got stuck waiting for the graphics card.'
         Fixes    = @(
             'Clean-install your graphics driver: remove it with DDU (Display Driver Uninstaller), then install the latest driver.'
             'Remove any GPU overclock or undervolt (MSI Afterburner, AMD Adrenalin tuning, NVIDIA app).'
@@ -143,7 +143,7 @@
         Explain  = 'Your hardware itself reported an error it could not fix - usually the CPU, RAM or motherboard. Most often caused by overclocking, undervolting or heat, not by a broken part.'
         Fixes    = @(
             'Turn off all overclocks and undervolts: XMP/EXPO, PBO, Curve Optimizer, Intel XTU - or load the BIOS defaults - and see if the crashes stop.'
-            'Update your BIOS. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
+            'Update your BIOS, following your motherboard maker''s instructions exactly. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
             'Check CPU and GPU temperatures while gaming (for example with HWiNFO), and clean out dust.'
             'If it still happens at default settings, the power supply, RAM or CPU may be failing.'
         )
@@ -151,10 +151,10 @@
     '0x101' = @{
         Name     = 'CLOCK_WATCHDOG_TIMEOUT'
         Category = 'Hardware'
-        Explain  = 'One of your CPU cores stopped responding. Almost always CPU instability from overclocking, undervolting or an outdated BIOS.'
+        Explain  = 'One of your CPU cores stopped responding. Usually CPU instability from overclocking, undervolting or an outdated BIOS.'
         Fixes    = @(
             'Turn off all overclocks and undervolts: XMP/EXPO, PBO, Curve Optimizer, Intel XTU - or load the BIOS defaults - and see if the crashes stop.'
-            'Update your BIOS. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
+            'Update your BIOS, following your motherboard maker''s instructions exactly. Intel 13th/14th gen CPUs especially need a recent BIOS to stay stable.'
             'Check CPU and GPU temperatures while gaming (for example with HWiNFO), and clean out dust.'
         )
     }
@@ -234,7 +234,7 @@
         Explain  = 'Windows could not read data it needed from the drive. A failing drive, a loose cable or bad RAM.'
         Fixes    = @(
             'Check your drive''s health with CrystalDiskInfo.'
-            'For SATA drives, reseat or replace the SATA cable.'
+            'For SATA drives, plug the SATA cable back in firmly at both ends, or replace it.'
             'Check the drive for errors: in an admin Command Prompt run "chkdsk C: /scan".'
             'Test your RAM: run "Windows Memory Diagnostic" from the Start menu, or MemTest86 for a deeper test.'
         )
@@ -256,7 +256,7 @@
         Fixes    = @(
             'Check the drive for errors: in an admin Command Prompt run "chkdsk C: /scan".'
             'Check your drive''s health with CrystalDiskInfo.'
-            'For SATA drives, reseat or replace the SATA cable.'
+            'For SATA drives, plug the SATA cable back in firmly at both ends, or replace it.'
         )
     }
 }

@@ -39,7 +39,7 @@ foreach ($module in 'Collect', 'Explain', 'Report') {
 
 if (-not $Console) {
     try {
-        Import-Rules (Join-Path $PSScriptRoot 'rules')
+        # The rules are loaded by the background reader (modules\Read-Report.ps1)
         . (Join-Path $PSScriptRoot 'modules\Ui.ps1')
         Show-CrashWindow -Root $PSScriptRoot -Version $script:Version -Days $Days -SortBy $SortBy
     } catch {
