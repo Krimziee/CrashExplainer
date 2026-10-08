@@ -5,11 +5,13 @@
     (Read-Report.ps1) and reports progress through a queue that a timer
     reads, so the window never freezes. Changing the sort order only
     reorders what was already read.
+    The page (ui\Page.xaml) is shown by the standalone window and by the
+    Crash Explainer tab in Krimz's Toolkit (modules\Page.ps1).
 #>
 
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
-$script:Ui      = @{}   # named controls from MainWindow.xaml
+$script:Ui      = @{}   # named controls from ui\Page.xaml
 $script:UiState = @{ Report = $null; Days = 14; SortBy = 'Severity'; Started = $false; Reading = $false }
 
 $script:Colors = @{ Text = '#F3F3F3'; Muted = '#A6A6A6'; Accent = '#4CA6FF' }
@@ -89,6 +91,13 @@ function New-SelectableText {
     $t.Padding = 0
     $t.CaretBrush = 'Transparent'
     $t
+}
+
+function Open-Link {
+    # Opens a web page in the browser. Through Windows Explorer, so the browser
+    # never runs with admin rights (Krimz's Toolkit runs as admin).
+    param([string]$Url)
+    Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$Url`""
 }
 
 function New-SeverityChip {
@@ -234,9 +243,9 @@ function Show-Detail {
         $buttons.Orientation = 'Horizontal'
         $search = New-Object System.Windows.Controls.Button
         $search.Content = 'Search online'
-        $search.Style = $script:Ui.Window.FindResource('AccentButton')
+        $search.Style = $script:Ui.Page.FindResource('AccentButton')
         $search.Tag = $x.Search
-        $search.Add_Click({ Invoke-UiSafely { Start-Process ('https://www.google.com/search?q=' + [uri]::EscapeDataString($this.Tag)) } })
+        $search.Add_Click({ Invoke-UiSafely { Open-Link ('https://www.google.com/search?q=' + [uri]::EscapeDataString($this.Tag)) } })
         $copy = New-Object System.Windows.Controls.Button
         $copy.Content = 'Copy'
         $copy.Margin = '8,0,0,0'
@@ -265,6 +274,7 @@ function Start-Reading {
     if ($s.Reading) { return }
     $s.Reading = $true
     Set-ChoicesEnabled $false
+    Set-ReadingBusy $true
     $script:Ui.SummaryText.Text = ''
     $script:Ui.BigPictureCard.Visibility = 'Collapsed'
     $script:Ui.ReadProgress.Value = 0
@@ -324,6 +334,13 @@ function Stop-Reading {
     }
     $s.Reading = $false
     Set-ChoicesEnabled $true
+    Set-ReadingBusy $false
+}
+
+function Set-ReadingBusy {
+    # Tells Krimz's Toolkit (if the page is shown there) that the logs are being read
+    param([bool]$Busy)
+    if ($script:UiState.OnBusy) { try { & $script:UiState.OnBusy $Busy } catch { } }
 }
 
 function Show-ReportResult {
@@ -352,37 +369,43 @@ function Show-ReportResult {
 }
 
 # ------------------------------------------------------------------
-#  Window
+#  Page and window
 # ------------------------------------------------------------------
 
-function Show-CrashWindow {
-    # -NoShow builds the window without opening it (used for automated screenshots)
-    param([string]$Root, [string]$Version, [int]$Days = 14, [string]$SortBy = 'Severity', [switch]$NoShow)
+function Import-CrashTheme {
+    # The shared look (Theme.xaml) becomes the application's resources, so the
+    # page finds its styles. Krimz's Toolkit does this itself.
+    param([string]$Root)
+    [xml]$xaml = Get-Content (Join-Path $Root 'ui\Theme.xaml') -Raw -Encoding UTF8
+    $theme = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
+    $app = [System.Windows.Application]::Current
+    if (-not $app) { $app = New-Object System.Windows.Application }
+    $app.ShutdownMode = 'OnExplicitShutdown'
+    $app.Resources = $theme
+}
 
-    Enable-DpiAwareness
-    [xml]$xaml = Get-Content (Join-Path $Root 'ui\MainWindow.xaml') -Raw -Encoding UTF8
-    $window = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
-    $script:Ui.Window = $window
+function New-CrashPage {
+    <#
+        Builds the page (ui\Page.xaml) and wires it up. Used by the standalone
+        window below and by Krimz's Toolkit (modules\Page.ps1). Reading starts
+        with Start-CrashPage. -OnBusy is called with $true / $false around reading.
+    #>
+    param([string]$Root, [string]$Version, [int]$Days = 14, [string]$SortBy = 'Severity', [scriptblock]$OnBusy)
+
+    [xml]$xaml = Get-Content (Join-Path $Root 'ui\Page.xaml') -Raw -Encoding UTF8
+    $page = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
+    $script:Ui.Page = $page
     $xaml.SelectNodes('//*[@*[local-name()="Name"]]') | ForEach-Object {
         $name = $_.GetAttribute('Name', 'http://schemas.microsoft.com/winfx/2006/xaml')
-        if ($name) { $script:Ui[$name] = $window.FindName($name) }
+        if ($name) { $script:Ui[$name] = $page.FindName($name) }
     }
 
     $s = $script:UiState
     $s.Root   = $Root
     $s.Days   = $Days
     $s.SortBy = $SortBy
+    $s.OnBusy = $OnBusy
     $script:Ui.VersionText.Text = "v$Version"
-
-    # Dark title bar to match the window (Windows 10 2004+ / Windows 11)
-    $window.Add_SourceInitialized({
-        try {
-            $hwnd = (New-Object System.Windows.Interop.WindowInteropHelper $script:Ui.Window).Handle
-            $on = 1
-            $native = Get-NativeMethods
-            [void]$native::DwmSetWindowAttribute($hwnd, 20, [ref]$on, 4)
-        } catch { }
-    })
 
     # Choices are set before the handlers are added, so setting them doesn't trigger a read
     $dayButton = $script:Ui["Days$Days"]
@@ -400,15 +423,39 @@ function Show-CrashWindow {
     $script:Ui.CrashList.Add_SelectionChanged({
         Invoke-UiSafely { Show-Detail $(if ($script:Ui.CrashList.SelectedItem) { $script:Ui.CrashList.SelectedItem.Tag }) }
     })
+    $page
+}
+
+function Start-CrashPage {
+    # The first read, once the page is on screen (window opened / tab selected)
+    if ($script:UiState.Started) { return }
+    $script:UiState.Started = $true
+    Start-Reading
+}
+
+function Show-CrashWindow {
+    # The standalone window. -NoShow builds it without opening it (used for automated screenshots)
+    param([string]$Root, [string]$Version, [int]$Days = 14, [string]$SortBy = 'Severity', [switch]$NoShow)
+
+    Enable-DpiAwareness
+    Import-CrashTheme $Root
+    [xml]$xaml = Get-Content (Join-Path $Root 'ui\MainWindow.xaml') -Raw -Encoding UTF8
+    $window = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
+    $script:Ui.Window = $window
+    $window.Content = New-CrashPage -Root $Root -Version $Version -Days $Days -SortBy $SortBy
+
+    # Dark title bar to match the window (Windows 10 2004+ / Windows 11)
+    $window.Add_SourceInitialized({
+        try {
+            $hwnd = (New-Object System.Windows.Interop.WindowInteropHelper $script:Ui.Window).Handle
+            $on = 1
+            $native = Get-NativeMethods
+            [void]$native::DwmSetWindowAttribute($hwnd, 20, [ref]$on, 4)
+        } catch { }
+    })
 
     # Start reading once the window is on screen
-    $window.Add_ContentRendered({
-        Invoke-UiSafely {
-            if ($script:UiState.Started) { return }
-            $script:UiState.Started = $true
-            Start-Reading
-        }
-    })
+    $window.Add_ContentRendered({ Invoke-UiSafely { Start-CrashPage } })
     $window.Add_Closed({ Stop-Reading })
 
     if ($NoShow) { return $window }
