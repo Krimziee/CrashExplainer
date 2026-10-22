@@ -10,6 +10,12 @@ and no settings, and doesn't touch the registry, drivers or services. The only
 things that leave it are on your click: the clipboard (Copy) and your browser
 (Search online).
 
+## What it looks like
+
+![Crash Explainer](screenshots/crash-explainer.png)
+
+Shown inside Krimz's Toolkit, where it is a tab.
+
 ## How to use
 
 Double-click **`Explain Crashes.cmd`**. A window opens with your crashes on
