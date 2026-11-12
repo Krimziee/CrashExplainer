@@ -43,6 +43,9 @@ function Show-Report {
     Write-Host " Crashes from the last $($Report.Days) days. This tool only reads Windows' logs - it changes nothing." -ForegroundColor DarkGray
 
     $groups = @(Sort-CrashGroups $Report.Groups $SortBy)
+    $problem = Format-ReadProblems $Report
+    if ($problem) { Write-Wrapped $problem -Indent 1 -Color Yellow }
+    if (-not $groups -and $problem) { return }
     if (-not $groups) {
         Write-Section 'No crashes found'
         Write-Wrapped "Windows recorded no crashes, blue screens, freezes or sudden shutdowns in the last $($Report.Days) days. If something did crash, look further back, for example: CrashExplainer.ps1 -Days 30"

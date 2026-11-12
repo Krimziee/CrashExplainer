@@ -191,12 +191,7 @@ function Show-Detail {
 
     [void]$panel.Children.Add((New-ChipRow $x))
     [void]$panel.Children.Add((New-Text $x.Title -Size 20 -Weight 'SemiBold' -Margin '0,8,0,4'))
-    $when = if ($Group.Count -gt 1) {
-        'Happened {0} times - first {1}, last {2}' -f $Group.Count, (Format-When $Group.First), (Format-When $Group.Last)
-    } else {
-        'Happened {0}' -f (Format-When $Group.Last)
-    }
-    [void]$panel.Children.Add((New-Text $when $script:Colors.Muted 13))
+    [void]$panel.Children.Add((New-Text (Format-Happened $Group) $script:Colors.Muted 13))
 
     Add-Section 'WHAT HAPPENED'
     foreach ($paragraph in $x.Explain) {
@@ -326,9 +321,14 @@ function Stop-Reading {
     $s = $script:UiState
     if ($s.Timer) { $s.Timer.Stop() }
     if ($s.PowerShell) {
-        try { if (-not $s.Handle.IsCompleted) { $s.PowerShell.Stop() } } catch { }
-        $s.PowerShell.Dispose()
-        $s.Runspace.Dispose()
+        if ($s.Handle.IsCompleted) {
+            $s.PowerShell.Dispose()
+            $s.Runspace.Dispose()
+        } else {
+            # Still reading: ask it to stop without waiting for it (waiting would freeze the window
+            # until Windows hands back the log it is reading)
+            try { [void]$s.PowerShell.BeginStop($null, $null) } catch { }
+        }
         $s.PowerShell = $null
         $s.Runspace   = $null
     }
@@ -348,13 +348,18 @@ function Show-ReportResult {
     $s = $script:UiState
     $s.Report = $Report
     $script:Ui.CrashList.Items.Clear()
+    $problem = Format-ReadProblems $s.Report
+    if (-not $s.Report.Groups -and $problem) {
+        Show-Status 'Could not read the crash logs' "$problem Try Refresh; if it keeps happening, restart the PC."
+        return
+    }
     if (-not $s.Report.Groups) {
         Show-Status 'No crashes found' ("Windows recorded no crashes, blue screens, freezes or sudden shutdowns in the last $($s.Days) days." +
                                         $(if ($s.Days -lt 90) { ' If something did crash, try a longer period above.' }))
         return
     }
 
-    $script:Ui.SummaryText.Text = '{0} in the last {1} days.' -f $s.Report.Summary, $s.Days
+    $script:Ui.SummaryText.Text = ('{0} in the last {1} days.' -f $s.Report.Summary, $s.Days) + $(if ($problem) { " $problem" })
     $notes = $script:Ui.BigPicturePanel
     $notes.Children.Clear()
     foreach ($note in $s.Report.BigPicture) {

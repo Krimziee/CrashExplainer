@@ -15,6 +15,10 @@
       Detail      One extra line for the report (program path...)
 #>
 
+# Logs that could not be read during the last Get-CrashEvents. The report carries them, so
+# "nothing found" is never shown when the truth is "couldn't look".
+$script:ReadProblems = New-Object System.Collections.Generic.List[string]
+
 function Read-EventLog {
     param([hashtable]$Filter)
     try {
@@ -22,6 +26,7 @@ function Read-EventLog {
     } catch {
         # Get-WinEvent reports "nothing found" as an error
         if ($_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') {
+            if (-not $script:ReadProblems.Contains($Filter.LogName)) { $script:ReadProblems.Add($Filter.LogName) }
             Write-Warning ('Could not read the {0} log: {1}' -f $Filter.LogName, $_.Exception.Message)
         }
     }
@@ -92,6 +97,7 @@ function Get-CrashEvents {
     # -OnStep is called with the name of each source before it is read (progress in the window)
     param([datetime]$Since, [scriptblock]$OnStep = {})
     $crashes = New-Object System.Collections.Generic.List[object]
+    $script:ReadProblems.Clear()
 
     # Blue screens: logged after the restart, with the bug check code and parameters
     & $OnStep $script:CrashSources[0]

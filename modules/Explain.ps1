@@ -31,7 +31,16 @@ function Get-CrashReport {
         Groups     = $groups
         BigPicture = @(Get-BigPicture $groups)
         Summary    = Get-CrashSummary $groups
+        # Names of the Windows logs that could not be read (normally none)
+        ReadProblems = @($script:ReadProblems)
     }
+}
+
+function Format-ReadProblems {
+    # One sentence for the window and the console when a log could not be read
+    param($Report)
+    if (-not $Report.ReadProblems) { return '' }
+    "Windows' {0} log could not be read, so crashes may be missing here." -f ($Report.ReadProblems -join ' and ')
 }
 
 function Sort-CrashGroups {
@@ -81,6 +90,21 @@ function Format-When {
     if ($Time.Date -eq $today)             { return 'today ' + $Time.ToString('HH:mm') }
     if ($Time.Date -eq $today.AddDays(-1)) { return 'yesterday ' + $Time.ToString('HH:mm') }
     $Time.ToString('d MMM yyyy, HH:mm', [Globalization.CultureInfo]::InvariantCulture)
+}
+
+function Format-Happened {
+    # The line under a crash's title. Windows writes blue screens and sudden shutdowns to the log
+    # when the PC starts again, so for those the time is the restart, not the crash itself.
+    param($Group)
+    $text = if ($Group.Count -gt 1) {
+        'Happened {0} times - first {1}, last {2}' -f $Group.Count, (Format-When $Group.First), (Format-When $Group.Last)
+    } else {
+        'Happened {0}' -f (Format-When $Group.Last)
+    }
+    if ($Group.Kind -in 'BlueScreen', 'SuddenShutdown') {
+        $text += $(if ($Group.Count -gt 1) { ' (the times the PC started again)' } else { ' (the time the PC started again)' })
+    }
+    $text
 }
 
 function Format-Occurrence {
