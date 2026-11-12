@@ -27,7 +27,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$script:Version = '0.2.0'
+$script:Version = '0.2.1'
 
 foreach ($module in 'Collect', 'Explain', 'Report') {
     . (Join-Path $PSScriptRoot "modules\$module.ps1")
